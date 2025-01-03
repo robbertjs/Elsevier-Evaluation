@@ -3,12 +3,12 @@ config:
   output_dir: !path ../../../models/train_colpali_docmatix_hardneg_ib_3b-mix-448
   processor:
     () : colpali_engine.utils.transformers_wrappers.AutoProcessorWrapper
-    pretrained_model_name_or_path:  "./models/colpaligemma-3b-mix-448-base" # "./models/paligemma-3b-mix-448"
+    pretrained_model_name_or_path:  "/ivi/ilps/personal/jqiao/models/paligemma-3b-mix-448" # "./models/paligemma-3b-mix-448"
     max_length: 50
   model:
     (): colpali_engine.utils.transformers_wrappers.AllPurposeWrapper
     class_to_instanciate: !ext colpali_engine.models.ColPali
-    pretrained_model_name_or_path: "./models/colpaligemma-3b-mix-448-base"
+    pretrained_model_name_or_path: "/ivi/ilps/personal/jqiao/models/paligemma-3b-mix-448"
     torch_dtype:  !ext torch.bfloat16
 #    device_map: "auto"
 #    quantization_config:

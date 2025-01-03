@@ -4,12 +4,12 @@ config:
   processor:
     (): colpali_engine.utils.transformers_wrappers.AllPurposeWrapper
     class_to_instanciate: !ext colpali_engine.models.ColPaliProcessor
-    pretrained_model_name_or_path:  "./models/colpaligemma2-3b-pt-448-base" # "./models/paligemma-3b-mix-448"
+    pretrained_model_name_or_path:  "/ivi/ilps/personal/jqiao/models/paligemma-3b-mix-448" # "./models/paligemma-3b-mix-448"
     max_length: 50
   model:
     (): colpali_engine.utils.transformers_wrappers.AllPurposeWrapper
     class_to_instanciate: !ext colpali_engine.models.ColPali
-    pretrained_model_name_or_path: "./models/colpaligemma2-3b-pt-448-base"
+    pretrained_model_name_or_path: "/ivi/ilps/personal/jqiao/models/paligemma-3b-mix-448"
     torch_dtype:  !ext torch.bfloat16
     attn_implementation: "flash_attention_2"
   #    device_map: "auto"
@@ -38,10 +38,10 @@ config:
     gradient_checkpointing_kwargs: { "use_reentrant": false }
     # 6 x 8 gpus = 48 batch size
     # gradient_accumulation_steps: 4
-    per_device_eval_batch_size: 32
+    per_device_eval_batch_size: 8
     eval_strategy: "steps"
     dataloader_num_workers: 16
-    # bf16: true
+    bf16: true
     save_steps: 500
     logging_steps: 10
     eval_steps: 100
