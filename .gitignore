@@ -165,6 +165,19 @@ dmypy.json
 cython_debug/
 data_dir/
 wandb/
+log/
+log2/
+log3/
+log4/
+outputs/
+plots/
+RQ1_log/
+similarity_map_0.pdf
+scripts/other
+scripts/coverage_tmp.py
+models/
+data_dir/
+index_data/
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore

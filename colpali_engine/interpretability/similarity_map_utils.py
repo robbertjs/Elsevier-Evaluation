@@ -5,7 +5,6 @@ from einops import rearrange
 
 EPSILON = 1e-10
 
-
 def get_similarity_maps_from_embeddings(
     image_embeddings: torch.Tensor,
     query_embeddings: torch.Tensor,
@@ -50,6 +49,8 @@ def get_similarity_maps_from_embeddings(
         similarity_map = torch.einsum(
             "nk,ijk->nij", query_embeddings[idx], image_embedding_grid
         )  # (batch_size, query_tokens, n_patches_x, n_patches_y)
+
+        # max_similarity_map = torch.einsum("bnd,csd->bcns", query_embeddings, image_embeddings).max(dim=3)[0].sum(dim=2)
 
         similarity_maps.append(similarity_map)
 

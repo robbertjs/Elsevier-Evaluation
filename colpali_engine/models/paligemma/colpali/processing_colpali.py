@@ -78,6 +78,22 @@ class ColPaliProcessor(BaseVisualRetrieverProcessor, PaliGemmaProcessor):
 
         return batch_query
 
+    def process_passages(
+        self,
+        passages: List[str],
+        max_length: int = 512,
+    ) -> BatchFeature:
+
+        batch_passages = self.tokenizer(
+            passages,
+            text_pair=None,
+            return_token_type_ids=False,
+            return_tensors="pt",
+            padding="longest",
+            max_length=max_length,
+        )
+        return batch_passages
+
     def score(
         self,
         qs: List[torch.Tensor],
@@ -102,3 +118,27 @@ class ColPaliProcessor(BaseVisualRetrieverProcessor, PaliGemmaProcessor):
 
     def get_image_mask(self, batch_images: BatchFeature) -> torch.Tensor:
         return batch_images.input_ids == self.image_token_id
+
+    def matching_score(
+        self,
+        matching_type: str,
+        qs: List[torch.Tensor],
+        ps: List[torch.Tensor],
+        semantic_matching_indices: List,
+        device: Optional[Union[str, torch.device]] = None,
+        **kwargs,
+    ) -> torch.Tensor:
+        print("matching type ", matching_type)
+        if matching_type == "image_qtm":
+            score = self.score_multi_vector_image_qtm(qs, ps, device=device, **kwargs)
+        elif matching_type == "image_special_token":
+            score = self.score_multi_vector_image_special(qs, ps, device=device, **kwargs)
+        elif matching_type == "text_special_token":
+            score = self.score_multi_vector_text_special(qs, ps, device=device, **kwargs)
+        elif matching_type == "text_qtm":
+            score = self.score_multi_vector_text_qtm(qs, ps, device=device, **kwargs)
+        elif matching_type == "text_nonlexical":
+            score = self.score_multi_vector_text_nonlexical(qs, ps, device=device, semantic_matching_indices=semantic_matching_indices, **kwargs)
+        elif matching_type == "text_lexical":
+            score = self.score_multi_vector_text_lexical(qs, ps, device=device, semantic_matching_indices=semantic_matching_indices, **kwargs)
+        return score

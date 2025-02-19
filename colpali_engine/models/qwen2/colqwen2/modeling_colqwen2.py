@@ -72,7 +72,6 @@ class ColQwen2(Qwen2VLForConditionalGeneration):
         return hidden_states
 
 
-
     def forward(self, *args, **kwargs) -> torch.Tensor:
         # Delete output_hidden_states from kwargs
         kwargs.pop("output_hidden_states", None)

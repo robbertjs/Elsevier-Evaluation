@@ -14,7 +14,7 @@ def plot_similarity_map(
     image: Image.Image,
     similarity_map: torch.Tensor,
     figsize: Tuple[int, int] = (8, 8),
-    show_colorbar: bool = False,
+    show_colorbar: bool = True,
 ) -> Tuple[plt.Figure, plt.Axes]:
     """
     Plot and overlay a similarity map over the input image.
@@ -143,8 +143,7 @@ def plot_all_similarity_maps(
 
         if add_title:
             max_sim_score = similarity_maps[idx].max().item()
-            ax.set_title(f"Token #{idx}: `{token}`. MaxSim score: {max_sim_score:.2f}", fontsize=14)
-
+            # ax.set_title(f"Token #{idx}: `{token}`. MaxSim score: {max_sim_score:.2f}", fontsize=14)
+            ax.set_title(f"Token #{idx}: `{token}`. MaxSim score: {max_sim_score:.2f}", fontsize=14, y=0.8)  # y=0.9 positions the title inside the upper part of the image
         plots.append((fig, ax))
-
     return plots

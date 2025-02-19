@@ -100,3 +100,11 @@ class BiQwen2(Qwen2VLForConditionalGeneration):
         proj = last_hidden_states[:, -1, :]
         proj = proj / proj.norm(dim=-1, keepdim=True)
         return proj
+
+    @property
+    def patch_size(self) -> int:
+        return self.visual.config.patch_size
+
+    @property
+    def spatial_merge_size(self) -> int:
+        return self.visual.config.spatial_merge_size

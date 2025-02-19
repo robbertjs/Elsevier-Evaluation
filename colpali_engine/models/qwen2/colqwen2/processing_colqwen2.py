@@ -1,5 +1,5 @@
 import math
-from typing import ClassVar, List, Optional, Tuple, Union
+from typing import ClassVar, List, Optional, Tuple, Union, Dict
 
 import torch
 from PIL import Image
@@ -32,6 +32,8 @@ class ColQwen2Processor(BaseVisualRetrieverProcessor, Qwen2VLProcessor):
     visual_prompt_prefix: ClassVar[str] = (
         "<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>Describe the image.<|im_end|><|endoftext|>"
     )
+    passage_prefix = "<|im_start|>user\n<|vision_start|><|image_pad|><|vision_end|>Describe the image:"
+    passage_suffix = "<|im_end|><|endoftext|>"
     query_prefix: ClassVar[str] = "Query: "
     query_augmentation_token: ClassVar[str] = "<|endoftext|>"
     image_token: ClassVar[str] = "<|image_pad|>"
@@ -136,6 +138,50 @@ class ColQwen2Processor(BaseVisualRetrieverProcessor, Qwen2VLProcessor):
 
         return batch_doc
 
+    def process_images_texts(
+        self,
+        passages,
+    ) -> BatchFeature:
+        """
+        Process images for ColQwen2.
+        """
+        # print(passages)
+        images: List[Image.Image] = [i[0] for i in passages]
+        descriptions: List[str] = [i[1] for i in passages]
+
+        texts_doc : List[str] = []
+
+        for text in descriptions:
+            passage = self.passage_prefix + text + self.passage_suffix
+            texts_doc.append(passage)
+
+        resized_images: List[Image.Image] = [self.smart_resize(image) for image in images]
+
+        batch_doc = self(
+            text=texts_doc,
+            images=resized_images,
+            padding="longest",
+            return_tensors="pt",
+        )
+
+        # NOTE: The following code is a hack to make sure the scatter in DDP is done correctly when training
+        # on multiple GPUs.
+        offsets = batch_doc["image_grid_thw"][:, 1] * batch_doc["image_grid_thw"][:, 2]
+
+        # separate pixel_values for each image
+        pixel_values = torch.split(batch_doc["pixel_values"], offsets.tolist())
+
+        # pad pixel_values to the same length to be able to make it into a tensor
+        max_length = max([len(pv) for pv in pixel_values])
+
+        pixel_values = [
+            torch.cat([pv, torch.zeros((max_length - len(pv), pv.shape[1]), dtype=pv.dtype, device=pv.device)])
+            for pv in pixel_values
+        ]
+        batch_doc["pixel_values"] = torch.stack(pixel_values)
+
+        return batch_doc
+
     def process_queries(
         self,
         queries: List[str],
@@ -161,6 +207,20 @@ class ColQwen2Processor(BaseVisualRetrieverProcessor, Qwen2VLProcessor):
 
         return batch_query
 
+    def process_passages(
+        self,
+        passages: List[str],
+        max_length: int = 512,
+    ) -> BatchFeature:
+
+        batch_passages = self(
+            text=passages,
+            return_tensors="pt",
+            padding="longest",
+        )
+
+        return batch_passages
+
     def score(
         self,
         qs: List[torch.Tensor],
@@ -172,6 +232,31 @@ class ColQwen2Processor(BaseVisualRetrieverProcessor, Qwen2VLProcessor):
         Compute the MaxSim score (ColBERT-like) for the given multi-vector query and passage embeddings.
         """
         return self.score_multi_vector(qs, ps, device=device, **kwargs)
+
+    def matching_score(
+        self,
+        matching_type: str,
+        qs: List[torch.Tensor],
+        ps: List[torch.Tensor],
+        semantic_matching_indices: List,
+        device: Optional[Union[str, torch.device]] = None,
+        **kwargs,
+    ) -> torch.Tensor:
+        print("matching type ", matching_type)
+        if matching_type == "image_qtm":
+            score = self.score_multi_vector_image_qtm(qs, ps, device=device, **kwargs)
+        elif matching_type == "image_special_token":
+            score = self.score_multi_vector_image_special(qs, ps, device=device, **kwargs)
+        elif matching_type == "text_special_token":
+            score = self.score_multi_vector_text_special(qs, ps, device=device, **kwargs)
+        elif matching_type == "text_qtm":
+            score = self.score_multi_vector_text_qtm(qs, ps, device=device, **kwargs)
+        elif matching_type == "text_nonlexical":
+            score = self.score_multi_vector_text_nonlexical(qs, ps, device=device, semantic_matching_indices=semantic_matching_indices, **kwargs)
+        elif matching_type == "text_lexical":
+            score = self.score_multi_vector_text_lexical(qs, ps, device=device, semantic_matching_indices=semantic_matching_indices, **kwargs)
+        return score
+
 
     def get_n_patches(
         self,
