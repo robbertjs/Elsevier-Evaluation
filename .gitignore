@@ -179,6 +179,9 @@ models/
 data_dir/
 index_data/
 log_copy
+scripts/configs/pali_tmp
+scripts/configs/qwen2_tmp
+
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
 #  be found at https://github.com/github/gitignore/blob/main/Global/JetBrains.gitignore
