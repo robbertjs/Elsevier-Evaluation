@@ -22,7 +22,7 @@ pip install -e .
 
 ## Reproducibility
 
-* RQ1.1 Can we completely reproduce CoPali and achieve the same effectiveness on visual document retrieval? RQ1.2 Does CoPali significantly outperform the single-vector variants in terms of the effectiveness?
+* RQ1.1 Can we completely reproduce CoPali and achieve the same effectiveness on visual document retrieval?
 
 * RQ1.2 Does CoPali significantly outperform the single-vector variants in terms of the effectiveness?
 
