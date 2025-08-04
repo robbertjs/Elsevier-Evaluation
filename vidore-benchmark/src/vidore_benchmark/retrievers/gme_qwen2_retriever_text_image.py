@@ -35,11 +35,11 @@ class ImagesTextDataset(TorchDataset):
 
 
 
-@register_vision_retriever("dse-qwen2-textimage")
-class DSEQwen2TextRetrieverTextImage(VisionRetriever):
+@register_vision_retriever("gme-qwen2-textimage")
+class GMEQwen2TextRetrieverTextImage(VisionRetriever):
     def __init__(
         self,
-        pretrained_model_name_or_path: str = "MrLight/dse-qwen2-2b-mrl-v1",
+        pretrained_model_name_or_path: str = "Alibaba-NLP/gme-Qwen2-VL-2B-Instruct",
         num_image_tokens: int = 1024,  # 2560 is the original value
         device: str = "auto",
         use_visual: bool = False,

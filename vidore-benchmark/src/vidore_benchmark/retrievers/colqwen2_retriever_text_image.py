@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from typing import List, Optional, Union, cast, Any, Dict, List, Optional
-from PIL import Image
+import os, io,base64
 import torch
 from dotenv import load_dotenv
 from PIL import Image
@@ -16,12 +16,36 @@ from torch.utils.data import Dataset
 from typing import List, TypeVar
 from typing import List, Tuple, Any
 from torch.utils.data import Dataset as TorchDataset
+from vidore_benchmark.utils.iter_utils import batched
 
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
 load_dotenv(override=True)
+
+# # at top if needed
+# import os, io, base64
+# from PIL import Image
+
+# def _to_pil(img):
+#     if isinstance(img, Image.Image):
+#         return img
+#     if isinstance(img, str):
+#         # filepath first
+#         if os.path.exists(img):
+#             try:
+#                 return Image.open(img).convert("RGB")
+#             except Exception:
+#                 pass
+#         # then assume base64
+#         try:
+#             return Image.open(io.BytesIO(base64.b64decode(img))).convert("RGB")
+#         except Exception:
+#             pass
+#     # last resort dummy
+#     return Image.new("RGB", (224, 224), (127, 127, 127))
+
 
 
 class ImagesTextDataset(TorchDataset):
@@ -78,14 +102,19 @@ class ColQwen2RetrieverTextImage(VisionRetriever):
                 pretrained_model_name_or_path,
                 torch_dtype=torch.bfloat16,
                 device_map=self.device,
-                attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
+                attn_implementation="sdpa",
+                #attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
             ).eval(),
         )
 
         # Load the processor
         self.processor = cast(
             ColQwen2Processor,
-            ColQwen2Processor.from_pretrained(pretrained_model_name_or_path),
+            ColQwen2Processor.from_pretrained(
+                pretrained_model_name_or_path,
+                use_fast=True,
+                image_processor_kwargs={"size": {"shortest_edge": 384}},  # was ~448
+                ),
         )
         print("Loaded custom processor.\n")
         self._use_visual = use_visual
@@ -95,6 +124,25 @@ class ColQwen2RetrieverTextImage(VisionRetriever):
         return self._use_visual
 
     def process_images_texts(self, passages: List, **kwargs):
+        # norm = []
+        # for elem in passages:
+        #     # Accept dicts or (img, text, *extra)
+        #     if isinstance(elem, dict):
+        #         img = elem.get("image") or elem.get("image_filename")
+        #         text = (
+        #             elem.get("text_description")
+        #             or elem.get("caption")
+        #             or elem.get("text")
+        #             or elem.get("passage")
+        #             or ""
+        #         )
+        #     elif isinstance(elem, (list, tuple)):
+        #         img = elem[0]
+        #         text = elem[1] if len(elem) > 1 else ""
+        #     else:
+        #         raise TypeError(f"Unsupported passage type: {type(elem)}")
+
+        #     norm.append((_to_pil(img), text))
         return self.processor.process_images_texts(passages=passages).to(self.device)
 
     def process_images(self, images: List[Image.Image], **kwargs):
@@ -124,21 +172,32 @@ class ColQwen2RetrieverTextImage(VisionRetriever):
         return query_embeddings
 
     def forward_passages(self, passages: List[Any], batch_size: int, **kwargs) -> List[torch.Tensor]:
-        dataloader = DataLoader(
-            dataset=ImagesTextDataset(passages),
-            batch_size=batch_size,
-            shuffle=False,
-            collate_fn=self.process_images_texts,
-        )
-
         passage_embeddings: List[torch.Tensor] = []
-
         with torch.no_grad():
-            for batch_doc in tqdm(dataloader, desc="Forward pass documents...", leave=False):
-                embeddings_doc = self.model(**batch_doc).to("cpu")
-                passage_embeddings.extend(list(torch.unbind(embeddings_doc)))
-
+            for batch in tqdm(batched(passages, n=batch_size), desc="Forward pass documents...", leave=False):
+                # batch is a list of (PIL.Image, str)
+                inputs = self.processor.process_images_texts(passages=batch).to(self.device)
+                emb = self.model(**inputs).to("cpu")
+                passage_embeddings.extend(list(torch.unbind(emb)))
         return passage_embeddings
+
+
+    # def forward_passages(self, passages: List[Any], batch_size: int, **kwargs) -> List[torch.Tensor]:
+    #     dataloader = DataLoader(
+    #         dataset=ImagesTextDataset(passages),
+    #         batch_size=batch_size,
+    #         shuffle=False,
+    #         collate_fn=self.process_images_texts,
+    #     )
+
+    #     passage_embeddings: List[torch.Tensor] = []
+
+    #     with torch.no_grad():
+    #         for batch_doc in tqdm(dataloader, desc="Forward pass documents...", leave=False):
+    #             embeddings_doc = self.model(**batch_doc).to("cpu")
+    #             passage_embeddings.extend(list(torch.unbind(embeddings_doc)))
+
+    #     return passage_embeddings
 
     def get_scores(
         self,

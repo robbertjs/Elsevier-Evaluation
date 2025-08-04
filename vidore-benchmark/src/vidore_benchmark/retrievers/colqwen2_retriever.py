@@ -52,14 +52,19 @@ class ColQwen2Retriever(VisionRetriever):
                 pretrained_model_name_or_path,
                 torch_dtype=torch.bfloat16,
                 device_map=self.device,
-                attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
+                attn_implementation="sdpa",
+                #attn_implementation="flash_attention_2" if torch.cuda.is_available() else None,
             ).eval(),
         )
 
         # Load the processor
         self.processor = cast(
             ColQwen2Processor,
-            ColQwen2Processor.from_pretrained(pretrained_model_name_or_path),
+            ColQwen2Processor.from_pretrained(
+                pretrained_model_name_or_path,
+                use_fast=True,
+                image_processor_kwargs={"size": {"shortest_edge": 384}},  # was ~448
+                ),
         )
         print("Loaded custom processor.\n")
         self._use_visual = use_visual

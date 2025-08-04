@@ -25,3 +25,5 @@ from .base_vision_retriever import BaseVisionRetriever
 from .gte_qwen2_colbert import GTERetrieverColbert
 from .gme_qwen2_retriever import GMEQwen2Retriever
 from .gme_qwen2_retriever_text import GMEQwen2TextRetriever
+from .dse_qwen2_retriever_text_image import DSEQwen2TextRetrieverTextImage
+from .gme_qwen2_retriever_text_image import GMEQwen2TextRetrieverTextImage

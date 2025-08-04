@@ -135,12 +135,14 @@ def build_index(args):
             for idx, emb_document in enumerate(emb_passages):
                 emb_document, _ = embedding_pooler.pool_embeddings(emb_document)
                 emb_passages[idx] = emb_document
-
-        if "health" in collection_name:
+        
+        lc = collection_name.lower()
+        data_name = "custom"
+        if "health" in lc:
             data_name = "health"
-        elif "ai" in collection_name:
+        elif "ai" in lc:
             data_name = "ai"
-        elif "arxivqa" in collection_name:
+        elif "arxivqa" in lc:
             data_name = "arxivqa"
         
         print("start saving", len(emb_passages))
