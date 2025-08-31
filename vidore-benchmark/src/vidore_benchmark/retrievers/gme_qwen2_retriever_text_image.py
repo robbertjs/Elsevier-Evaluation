@@ -40,7 +40,7 @@ class GMEQwen2TextRetrieverTextImage(VisionRetriever):
     def __init__(
         self,
         pretrained_model_name_or_path: str = "Alibaba-NLP/gme-Qwen2-VL-2B-Instruct",
-        num_image_tokens: int = 1024,  # 2560 is the original value
+        num_image_tokens: int = 384,  # 2560 is the original value
         device: str = "auto",
         use_visual: bool = False,
     ):
@@ -182,7 +182,7 @@ class GMEQwen2TextRetrieverTextImage(VisionRetriever):
                     img = doc.get("image") or doc.get("image_filename")
                     text = doc.get("text_description") or doc.get("caption") or doc.get("text") or ""
                 else:
-                    # fallback (shouldn’t happen with your indexing.py): treat as text-only
+                    # fallback (shouldn’t happen with indexing.py): treat as text-only
                     img, text = Image.new("RGB", (28, 28)), str(doc)
 
                 message = [{

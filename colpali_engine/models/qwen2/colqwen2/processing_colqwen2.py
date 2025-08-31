@@ -43,7 +43,7 @@ class ColQwen2Processor(BaseVisualRetrieverProcessor, Qwen2VLProcessor):
         return self.tokenizer.convert_tokens_to_ids(self.image_token)
 
     def __init__(self, *args, **kwargs):
-        num_image_tokens = kwargs.pop("num_image_tokens", 768)
+        num_image_tokens = kwargs.pop("num_image_tokens", 384)
         super().__init__(*args, **kwargs)
         self.tokenizer.padding_side = "left"
         self.min_pixels = 4 * 28 * 28
@@ -203,6 +203,8 @@ class ColQwen2Processor(BaseVisualRetrieverProcessor, Qwen2VLProcessor):
             text=texts_query,
             return_tensors="pt",
             padding="longest",
+            max_length=64,
+            truncation=True,
         )
 
         return batch_query
@@ -217,6 +219,8 @@ class ColQwen2Processor(BaseVisualRetrieverProcessor, Qwen2VLProcessor):
             text=passages,
             return_tensors="pt",
             padding="longest",
+            max_length=256,
+            truncation=True,
         )
 
         return batch_passages

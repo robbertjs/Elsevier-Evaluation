@@ -94,8 +94,17 @@ def build_index(args):
                     dataset_dict['image'].append(image)
                 else:
                     # image = Image.open(data['image'])
-                    image = decode_base64_to_pil_image(data['image'])
-                    dataset_dict['image'].append(image)
+                    if "image" not in data or data["image"] is None:
+                        logger.warning(f"Skipping passage due to missing image: {data.get('image_filename', 'unknown')}")
+                        continue  # Skip this sample entirely
+                    try:
+                        image = decode_base64_to_pil_image(data["image"])
+                        dataset_dict["image"].append(image)
+                    except Exception as e:
+                        logger.warning(f"Failed to decode image for {data.get('image_filename', 'unknown')}: {e}")
+                        continue  # Skip broken image
+                    # image = decode_base64_to_pil_image(data['image'])
+                    # dataset_dict['image'].append(image)
                 dataset_dict['query'].append(str(data['query']))
                 dataset_dict['image_filename'].append(str(data['image_filename']))
                 dataset_dict['text_description'].append(str(data['text_description']))

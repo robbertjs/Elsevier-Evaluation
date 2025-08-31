@@ -302,7 +302,7 @@ def evaluate_retriever(
             indexing = torch.load(indexing_path)["embeddings"]
             query_ds = {'query': []}
             
-            passages_ds = {'query': [], 'image_filename': []}
+            passages_ds = {'query': [], 'image_filename': [], 'text_description': []}
             number_of_queries = 100 if "health" or "ai" in collection_name else 500 if "arxivqa" in collection_name else 0
       
             with open(collection_name, 'r') as file:
@@ -313,6 +313,7 @@ def evaluate_retriever(
                     
                     passages_ds['query'].append(str(data['query']))
                     passages_ds['image_filename'].append(str(data['image_filename']))
+                    passages_ds['text_description'].append(str(data.get('text_description', '')))
 
             query_ds = Dataset.from_dict(query_ds)
             passages_ds = Dataset.from_dict(passages_ds)
@@ -326,6 +327,17 @@ def evaluate_retriever(
                     emb_passages=indexing,
                     batch_score=batch_score,
                 )
+            # Enrich run_results with text_description
+            enriched_results = {
+                q: {
+                    fname: {
+                        "score": score,
+                        "text_description": passages_ds[i]["text_description"]
+                    }
+                    for i, (fname, score) in enumerate(sorted(doc_scores.items(), key=lambda x: -x[1]))
+                }
+                for q, doc_scores in run_results.items()
+            }
             # end_time = time.time()
             # elapsed_time = end_time - start_time
             # print(f"Search took {elapsed_time} seconds to complete.")
@@ -351,6 +363,12 @@ def evaluate_retriever(
             with open(str(run_results_savepath), "w", encoding="utf-8") as f:
                 f.write(json.dumps(run_results))
             print(f"run_results saved to `{run_results_savepath}`")
+
+            enriched_savepath = run_results_savepath.with_name(run_results_savepath.stem + "_enriched.json")
+            with open(str(enriched_savepath), "w", encoding="utf-8") as f:
+                json.dump(enriched_results, f)
+            print(f"run_results_enriched saved to `{enriched_savepath}`")
+
 
             with open(str(savepath), "w", encoding="utf-8") as f:
                 json_line = json.dumps(metrics) + "\n"  # Convert dict to JSON string and add a newline
@@ -394,6 +412,18 @@ def evaluate_retriever(
                         emb_passages=indexing,
                         batch_score=batch_score,
                     )
+                
+                # Enrich run_results with text_description using passages_ds
+                enriched_results = {
+                    q: {
+                        fname: {
+                            "score": score,
+                            "text_description": passages_ds[i]["text_description"]
+                        }
+                        for i, (fname, score) in enumerate(sorted(doc_scores.items(), key=lambda x: -x[1]))
+                    }
+                    for q, doc_scores in run_results.items()
+                }
 
                 metrics = {
                     dataset_name: agg_metrics
@@ -428,6 +458,14 @@ def evaluate_retriever(
                 with open(str(run_results_savepath), "w", encoding="utf-8") as f:
                     f.write(json.dumps(run_results))
                 print(f"run_results saved to `{run_results_savepath}`")
+
+                print("🟢 ENRICHED BLOCK REACHED")
+
+
+                enriched_savepath = run_results_savepath.with_name(run_results_savepath.stem + "_enriched.json")
+                with open(str(enriched_savepath), "w", encoding="utf-8") as f:
+                    json.dump(enriched_results, f)
+                print(f"run_results_enriched saved to `{enriched_savepath}`")
 
                 with open(str(savepath), "w", encoding="utf-8") as f:
                     f.write(results.model_dump_json(indent=4))
@@ -501,6 +539,18 @@ def evaluate_retriever(
                     batch_score=batch_score,
                     embedding_pooler=embedding_pooler,
                 )
+            
+            # Enrich run_results with text_description for imagetexts
+            enriched_results = {
+                q: {
+                    fname: {
+                        "score": score,
+                        "text_description": dataset[i]["text_description"]
+                    }
+                    for i, (fname, score) in enumerate(sorted(doc_scores.items(), key=lambda x: -x[1]))
+                }
+                for q, doc_scores in run_results.items()
+            }
 
             metrics = {
                 dataset_name: agg_metrics
@@ -535,6 +585,11 @@ def evaluate_retriever(
             with open(str(run_results_savepath), "w", encoding="utf-8") as f:
                 f.write(json.dumps(run_results))
             print(f"run_results saved to `{run_results_savepath}`")
+
+            enriched_savepath = run_results_savepath.with_name(run_results_savepath.stem + "_enriched.json")
+            with open(str(enriched_savepath), "w", encoding="utf-8") as f:
+                json.dump(enriched_results, f)
+            print(f"run_results_enriched saved to `{enriched_savepath}`")
 
             with open(str(savepath), "w", encoding="utf-8") as f:
                 f.write(results.model_dump_json(indent=4))
